@@ -41,7 +41,7 @@ namespace CssIronyParser
             //var unicode_6 = new RegexBasedTerminal("unicode_6", @"u\+[0-9a-f]{6}");
             //var unicode_7 = new RegexBasedTerminal("unicode_7", @"u\+[0-9a-f]{1,6}-[0-9a-f]{1,6}");
 
-            var IDENT = new IdentifierTerminal("IDENT", "-");
+            var ident = new IdentifierTerminal("ident", "-");
             var NUMBER = new NumberLiteral("NUMBER", NumberOptions.DisableQuickParse);
             var CSS_NUMBER = new NumberLiteral("CSS_NUMBER", NumberOptions.AllowLetterAfter);
             var PERCENTAGE = new RegexBasedTerminal("PERCENTAGE", @"[0-9]+[\%]");        
@@ -85,11 +85,10 @@ namespace CssIronyParser
             var BLOCK_ITEM = new NonTerminal("BLOCK_ITEM");
             var DECLARATION = new NonTerminal("DECLARATION");
             var PROPERTY = new NonTerminal("PROPERTY");
+            var VALUE_ITEM_GROUP = new NonTerminal("VALUE_3");
             var VALUE = new NonTerminal("VALUE");
-            var VALUE_1 = new NonTerminal("VALUE_1");
-            var VALUE_2 = new NonTerminal("VALUE_2");
-            var VALUES = new NonTerminal("VALUES");
-            var VAR_REFERENCE = new NonTerminal("VAR_REFERENCE", VAR_SYMBOL + IDENT);
+            var DECLARATION_VALUES = new NonTerminal("DECLARATION_VALUES");
+            var VAR_REFERENCE = new NonTerminal("VAR_REFERENCE", VAR_SYMBOL + ident);
 
             //    var var_declare_member = new NonTerminal("var_declare_member");
             //    var var_color = new NonTerminal("var_color");
@@ -125,49 +124,41 @@ namespace CssIronyParser
             ////var_declaration
             ////var_declaration.Rule = var_property + S_star + var_separator + S_star;
             VAR_RULE.Rule = VAR_PROPERTY + colon + VAR_PROPERTY_DECLARATION + semicolon;
-            VAR_PROPERTY.Rule = VAR_SYMBOL + IDENT;
+            VAR_PROPERTY.Rule = VAR_SYMBOL + ident;
             VAR_PROPERTY_DECLARATION.Rule = VAR_DECLARATION_LIST | color_rgb;
             VAR_DECLARATION_LIST.Rule = MakePlusRule(VAR_DECLARATION_LIST, comma, VAR_DECLARATION);
-            VAR_DECLARATION.Rule = IDENT;
+            VAR_DECLARATION.Rule = ident;
 
             //block       : '{' S* [ any | block | ATKEYWORD S* | ';' S* ]* '}' S*;
             BLOCK.Rule = BLOCK_IDENTIFIER + l_paran + BLOCK_ITEMS + r_paran;
-            BLOCK_IDENTIFIER.Rule = IDENT | AT_SYMBOL + IDENT;
+            BLOCK_IDENTIFIER.Rule = ident | AT_SYMBOL + ident;
             BLOCK_ITEMS.Rule = MakeStarRule(BLOCK_ITEMS, BLOCK_ITEM);
             BLOCK_ITEM.Rule = DECLARATION | BLOCK;
 
             //declaration : property S* ':' S* value;
             //
-            DECLARATION.Rule = PROPERTY + colon + VALUES;
+            DECLARATION.Rule = PROPERTY + colon + DECLARATION_VALUES;
 
             //property    : IDENT;
             //
-            PROPERTY.Rule = IDENT;
+            PROPERTY.Rule = ident;
 
-            VALUES.Rule =
-                  ZERO_TERMINAL + semicolon
-               // | NUMBER + semicolon
-                | VALUE_1 + semicolon
-                | CSS_UNIT_VALUE + semicolon
-                | "none" + semicolon
-                | "block" + semicolon
-                | "inline-block" + semicolon;
+            DECLARATION_VALUES.Rule = VALUE + semicolon;
+;
 
             //PERCENTAGE.Precedence = 1;
 
-            VALUE_1.Rule = MakePlusRule(VALUE_1, VALUE);
+            VALUE.Rule = MakePlusRule(VALUE, VALUE_ITEM_GROUP);
            // VALUE_1.Precedence = 4;
 
-            VALUE.Rule =  PERCENTAGE | VAR_REFERENCE | CSS_UNIT_VALUE;
+            VALUE_ITEM_GROUP.Rule =  PERCENTAGE | VAR_REFERENCE | CSS_UNIT_VALUE | ZERO_TERMINAL | "none" | "block" | "inline-block";
            // VALUE.Precedence = 3;
-
-            VALUE_2.Rule = MakePlusRule(VALUE_2, CSS_UNIT_VALUE);
-          //  VALUE_2.Precedence = 2;
 
             CSS_UNIT_VALUE.Rule = CSS_NUMBER + CSS_UNIT;
             //VALUE_2.Precedence = 1;
 
-            VAR_REFERENCE.Rule = VAR_SYMBOL + IDENT;
+            VAR_REFERENCE.Rule = VAR_SYMBOL + ident;
+            
 
             //var_color.Rule = color_rgb;
             //var_declare_members.Rule = MakePlusRule(var_declare_members, comma, var_declare_member);
@@ -252,8 +243,8 @@ namespace CssIronyParser
             #endregion
 
             MarkPunctuation(colon, semicolon, l_paran, r_paran);
-            MarkTransient(VAR_SYMBOL, VAR_PROPERTY_DECLARATION, VAR_DECLARATION, VALUE);
-            MarkReservedWords("none", "block");
+            MarkTransient(VAR_SYMBOL, VAR_PROPERTY_DECLARATION, VAR_DECLARATION, VALUE_ITEM_GROUP, BLOCK_ITEM, PROPERTY, DECLARATION_VALUES);
+            MarkReservedWords("none", "block", "inline-block");
 
             //Set grammar root
             this.Root = STYLESHEET;
