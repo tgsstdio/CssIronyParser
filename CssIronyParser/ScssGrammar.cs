@@ -14,6 +14,8 @@ namespace CssIronyParser
             var r_paran = ToTerm("}");
             var colon = ToTerm(":");
             var semicolon = ToTerm(";");
+            var single_quote = ToTerm("'");
+            var forward_slash = ToTerm("/");
 
             //  var name = new RegexBasedTerminal(@"([_a-zA-Z0-9-]|([^\0-\177])|((\[0-9a-f]{1,6}(\r\n|[ \n\r\t\f])?)|\[^\n\r\f0-9a-f]))+");
             ////   var ident = new RegexBasedTerminal(@"[-]?([_a-z]|[^\0-\177]|((\[0-9a-f]{1,6}(\r\n|[ \n\r\t\f])?)|\[^\n\r\f0-9a-f]))([_a-zA-Z0-9-]|[^\0-\177]|((\[0-9a-f]{1,6}(\r\n|[ \n\r\t\f])?)|\[^\n\r\f0-9a-f]))*");
@@ -26,6 +28,14 @@ namespace CssIronyParser
             var color_rgb = new RegexBasedTerminal("colorRGB", @"#[0-9a-f]{1,6}");
 
             var comment = new CommentTerminal("COMMENT", "/*", "*/");
+            var line_comment = new CommentTerminal("LINE_COMMENT", "//", "\n");
+
+            var import = ToTerm("@import");
+            var font = ToTerm("font");
+
+            var import_file = new StringLiteral("import_file", "'");
+            var font_name = new StringLiteral("font_name", "\"");
+
             //  var dashmatch = ToTerm(@"|=");
             //var includes = ToTerm(@"~=");
 
@@ -43,11 +53,12 @@ namespace CssIronyParser
 
             var ident = new IdentifierTerminal("ident", "-");
             var NUMBER = new NumberLiteral("NUMBER", NumberOptions.DisableQuickParse);
-            var CSS_NUMBER = new NumberLiteral("CSS_NUMBER", NumberOptions.AllowLetterAfter);
-            var PERCENTAGE = new RegexBasedTerminal("PERCENTAGE", @"[0-9]+[\%]");        
-            var ZERO_TERMINAL = new RegexBasedTerminal("ZERO_TERMINAL", @"[0]");
+            var css_number = new NumberLiteral("CSS_NUMBER", NumberOptions.AllowLetterAfter);
+            var percentage = new RegexBasedTerminal("PERCENTAGE", @"[0-9]+[\%]");        
+            var zero_terminal = new RegexBasedTerminal("ZERO_TERMINAL", @"[0]");
 
             NonGrammarTerminals.Add(comment);
+            NonGrammarTerminals.Add(line_comment);
 
             #endregion
 
@@ -61,7 +72,7 @@ namespace CssIronyParser
 
             var PIXEL = new NonTerminal("PIXEL", ToTerm("px"));
 
-            var CSS_UNIT_VALUE = new NonTerminal("CSS_UNIT_VALUE", CSS_NUMBER + PIXEL);
+            var CSS_UNIT_VALUE = new NonTerminal("CSS_UNIT_VALUE", css_number + PIXEL);
             //    //var DIMENSION = new NonTerminal("DIMENSION", num + ident);
             //   // var STRING = new NonTerminal("STRING", string1 | string2);
             //    //var HASH = new NonTerminal("HASH", ToTerm("#") + name);
@@ -81,6 +92,7 @@ namespace CssIronyParser
 
             var BLOCK = new NonTerminal("BLOCK");
             var BLOCK_IDENTIFIER = new NonTerminal("BLOCK_IDENTIFIER");
+            var BLOCK_IDENTIFIERS = new NonTerminal("BLOCK_IDENTIFIERS");
             var BLOCK_ITEMS = new NonTerminal("BLOCK_ITEMS");
             var BLOCK_ITEM = new NonTerminal("BLOCK_ITEM");
             var DECLARATION = new NonTerminal("DECLARATION");
@@ -89,6 +101,20 @@ namespace CssIronyParser
             var VALUE = new NonTerminal("VALUE");
             var DECLARATION_VALUES = new NonTerminal("DECLARATION_VALUES");
             var VAR_REFERENCE = new NonTerminal("VAR_REFERENCE", VAR_SYMBOL + ident);
+
+            var IMPORT_RULE = new NonTerminal("IMPORT_RULE");
+
+            var FONT_GROUP = new NonTerminal("FONT_GROUP");
+            var FONT_STYLE = new NonTerminal("FONT_STYLE");
+            var FONT_VARIANT = new NonTerminal("FONT_VARIANT");
+            var FONT_WEIGHT = new NonTerminal("FONT_WEIGHT");
+            var FONT_SIZE = new NonTerminal("FONT_SIZE");
+            var LINE_WEIGHT = new NonTerminal("LINE_WEIGHT");
+            var FONT_FAMILY = new NonTerminal("FONT_FAMILY");
+            var FONT_FAMILY_MEMBER = new NonTerminal("FONT_FAMILY_MEMBER");
+            var UNIT_SIZE = new NonTerminal("UNIT_SIZE");
+            var FONT_OPTIONAL = new NonTerminal("FONT_OPTIONAL");
+
 
             //    var var_declare_member = new NonTerminal("var_declare_member");
             //    var var_color = new NonTerminal("var_color");
@@ -119,7 +145,7 @@ namespace CssIronyParser
             // var stylesheet_nonstar = CDO | CDC | statement;
             STYLESHEET.Rule = MakeStarRule(STYLESHEET, STATEMENT);
 
-            STATEMENT.Rule = VAR_RULE | BLOCK;
+            STATEMENT.Rule = VAR_RULE | BLOCK | IMPORT_RULE;
 
             ////var_declaration
             ////var_declaration.Rule = var_property + S_star + var_separator + S_star;
@@ -130,10 +156,12 @@ namespace CssIronyParser
             VAR_DECLARATION.Rule = ident;
 
             //block       : '{' S* [ any | block | ATKEYWORD S* | ';' S* ]* '}' S*;
-            BLOCK.Rule = BLOCK_IDENTIFIER + l_paran + BLOCK_ITEMS + r_paran;
+            BLOCK.Rule = BLOCK_IDENTIFIERS + l_paran + BLOCK_ITEMS + r_paran;
+            BLOCK_IDENTIFIERS.Rule = MakePlusRule(BLOCK_IDENTIFIERS, comma, BLOCK_IDENTIFIER);
+
             BLOCK_IDENTIFIER.Rule = ident | AT_SYMBOL + ident;
             BLOCK_ITEMS.Rule = MakeStarRule(BLOCK_ITEMS, BLOCK_ITEM);
-            BLOCK_ITEM.Rule = DECLARATION | BLOCK;
+            BLOCK_ITEM.Rule = BLOCK | FONT_GROUP | DECLARATION;
 
             //declaration : property S* ':' S* value;
             //
@@ -151,14 +179,55 @@ namespace CssIronyParser
             VALUE.Rule = MakePlusRule(VALUE, VALUE_ITEM_GROUP);
            // VALUE_1.Precedence = 4;
 
-            VALUE_ITEM_GROUP.Rule =  PERCENTAGE | VAR_REFERENCE | CSS_UNIT_VALUE | ZERO_TERMINAL | "none" | "block" | "inline-block";
+            VALUE_ITEM_GROUP.Rule =  percentage | VAR_REFERENCE | CSS_UNIT_VALUE | zero_terminal | color_rgb | ident | "none" | "block" | "inline-block";
            // VALUE.Precedence = 3;
 
-            CSS_UNIT_VALUE.Rule = CSS_NUMBER + CSS_UNIT;
+            CSS_UNIT_VALUE.Rule = css_number + CSS_UNIT;
             //VALUE_2.Precedence = 1;
 
             VAR_REFERENCE.Rule = VAR_SYMBOL + ident;
-            
+
+            IMPORT_RULE.Rule = import + import_file + semicolon;
+
+            FONT_GROUP.Rule = font + colon + FONT_STYLE + FONT_VARIANT + FONT_WEIGHT + FONT_SIZE + FONT_FAMILY + semicolon;
+
+            FONT_STYLE.Rule = Empty
+                //   | "normal"
+                | "italic"
+                | "oblique";
+            //| "initial"
+            //| "inherit";
+
+            FONT_VARIANT.Rule = Empty
+                //   | "normal" 
+                | "small-caps";
+              //  | "initial"
+             //   | "inherit";
+
+            FONT_WEIGHT.Rule = Empty
+                //| "normal"
+                | "bold"
+                | "bolder"
+                | "lighter"
+                //| "initial"
+                //| "inherit"
+                | "100"
+                | "200"
+                | "300"
+                | "400"
+                | "500"
+                | "600"
+                | "700"
+                | "800"
+                | "900";
+
+            FONT_SIZE.Rule = UNIT_SIZE + forward_slash + LINE_WEIGHT | UNIT_SIZE;
+            UNIT_SIZE.Rule = percentage | CSS_UNIT_VALUE;
+            LINE_WEIGHT.Rule = UNIT_SIZE;           
+       
+            FONT_FAMILY.Rule = VAR_REFERENCE | MakePlusRule(FONT_FAMILY, comma, FONT_FAMILY_MEMBER);
+            FONT_FAMILY_MEMBER.Rule = ident | font_name | "sans-serif" | "serif" | "monospace" | "cursive" | "fantasy" | "caption" | "icon" | "menu" | "message-box" | "small-caption" | "status-bar";
+
 
             //var_color.Rule = color_rgb;
             //var_declare_members.Rule = MakePlusRule(var_declare_members, comma, var_declare_member);
@@ -242,9 +311,9 @@ namespace CssIronyParser
          **/
             #endregion
 
-            MarkPunctuation(colon, semicolon, l_paran, r_paran);
+            MarkPunctuation(colon, semicolon, l_paran, r_paran, single_quote);
             MarkTransient(VAR_SYMBOL, VAR_PROPERTY_DECLARATION, VAR_DECLARATION, VALUE_ITEM_GROUP, BLOCK_ITEM, PROPERTY, DECLARATION_VALUES);
-            MarkReservedWords("none", "block", "inline-block");
+            MarkReservedWords("none", "block", "inline-block", "font");
 
             //Set grammar root
             this.Root = STYLESHEET;
