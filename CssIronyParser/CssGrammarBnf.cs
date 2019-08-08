@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Irony.Parsing;
 
-namespace CssIronyParser
+namespace ScssIronyParser
 {
     // Used grammar:
     // http://dev.w3.org/csswg/css2/grammar.html

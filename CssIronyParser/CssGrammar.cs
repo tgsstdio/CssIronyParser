@@ -1,7 +1,7 @@
 ﻿using System;
 using Irony.Parsing;
 
-namespace CssIronyParser
+namespace ScssIronyParser
 {
     [Language("CSS", "2.2", "")]
     public class CssGrammar : Grammar

@@ -1,7 +1,7 @@
 ﻿using Irony.Parsing;
 using System;
 
-namespace CssIronyParser
+namespace ScssIronyParser
 {
     [Language("SCSS", "1.0", "")]
     public class ScssGrammar : Grammar
@@ -16,6 +16,8 @@ namespace CssIronyParser
             var semicolon = ToTerm(";");
             var single_quote = ToTerm("'");
             var forward_slash = ToTerm("/");
+            var left_param = ToTerm("(");
+            var right_param = ToTerm(")");
 
             //  var name = new RegexBasedTerminal(@"([_a-zA-Z0-9-]|([^\0-\177])|((\[0-9a-f]{1,6}(\r\n|[ \n\r\t\f])?)|\[^\n\r\f0-9a-f]))+");
             ////   var ident = new RegexBasedTerminal(@"[-]?([_a-z]|[^\0-\177]|((\[0-9a-f]{1,6}(\r\n|[ \n\r\t\f])?)|\[^\n\r\f0-9a-f]))([_a-zA-Z0-9-]|[^\0-\177]|((\[0-9a-f]{1,6}(\r\n|[ \n\r\t\f])?)|\[^\n\r\f0-9a-f]))*");
@@ -32,6 +34,8 @@ namespace CssIronyParser
 
             var import = ToTerm("@import");
             var font = ToTerm("font");
+            var mixin = ToTerm("@mixin");
+            var include = ToTerm("@include");
 
             var import_file = new StringLiteral("import_file", "'");
             var font_name = new StringLiteral("font_name", "\"");
@@ -51,7 +55,7 @@ namespace CssIronyParser
             //var unicode_6 = new RegexBasedTerminal("unicode_6", @"u\+[0-9a-f]{6}");
             //var unicode_7 = new RegexBasedTerminal("unicode_7", @"u\+[0-9a-f]{1,6}-[0-9a-f]{1,6}");
 
-            var ident = new IdentifierTerminal("ident", "-");
+            var ident = new IdentifierTerminal("ident", "-.", "-.");
             var NUMBER = new NumberLiteral("NUMBER", NumberOptions.DisableQuickParse);
             var css_number = new NumberLiteral("CSS_NUMBER", NumberOptions.AllowLetterAfter);
             var percentage = new RegexBasedTerminal("PERCENTAGE", @"[0-9]+[\%]");        
@@ -63,7 +67,7 @@ namespace CssIronyParser
             #endregion
 
             #region 2. Non-terminals
-            var CSS_UNIT = new NonTerminal("CSS_UNIT", ToTerm("px") | ToTerm("em"));
+            var CSS_UNIT = new NonTerminal("CSS_UNIT", ToTerm("px") | ToTerm("em") | ToTerm("deg") | ToTerm("rem"));
             var VAR_SYMBOL = new NonTerminal("VAR_SYMBOL", ToTerm("$"));
             var AT_SYMBOL = new NonTerminal("AT_SYMBOL", ToTerm("@"));
             var CDO = new NonTerminal("CDO", ToTerm("<!--"));
@@ -114,7 +118,15 @@ namespace CssIronyParser
             var FONT_FAMILY_MEMBER = new NonTerminal("FONT_FAMILY_MEMBER");
             var UNIT_SIZE = new NonTerminal("UNIT_SIZE");
             var FONT_OPTIONAL = new NonTerminal("FONT_OPTIONAL");
+            var MIXIN_RULE = new NonTerminal("MIXIN_RULE");
+            var MIXIN_FUNCTION = new NonTerminal("MIXIN_FUNCTION");
+            var MIXIN_BODY = new NonTerminal("MIXIN_BODY");
+            var MIXIN_ARGS_LIST = new NonTerminal("MIXIN_ARGS_LIST");
 
+            var INCLUDE_MIXIN = new NonTerminal("INCLUDE_MIXIN");
+            var MIXIN_CALL = new NonTerminal("MIXIN_CALL");
+            var MIXIN_CALL_ARGS = new NonTerminal("MIXIN_CALL_ARGS");
+            var CALL_ARGUMENT = new NonTerminal("CALL_ARGUMENT");
 
             //    var var_declare_member = new NonTerminal("var_declare_member");
             //    var var_color = new NonTerminal("var_color");
@@ -145,7 +157,7 @@ namespace CssIronyParser
             // var stylesheet_nonstar = CDO | CDC | statement;
             STYLESHEET.Rule = MakeStarRule(STYLESHEET, STATEMENT);
 
-            STATEMENT.Rule = VAR_RULE | BLOCK | IMPORT_RULE;
+            STATEMENT.Rule = VAR_RULE | BLOCK | IMPORT_RULE | MIXIN_RULE;
 
             ////var_declaration
             ////var_declaration.Rule = var_property + S_star + var_separator + S_star;
@@ -161,7 +173,7 @@ namespace CssIronyParser
 
             BLOCK_IDENTIFIER.Rule = ident | AT_SYMBOL + ident;
             BLOCK_ITEMS.Rule = MakeStarRule(BLOCK_ITEMS, BLOCK_ITEM);
-            BLOCK_ITEM.Rule = BLOCK | FONT_GROUP | DECLARATION;
+            BLOCK_ITEM.Rule = BLOCK | FONT_GROUP | DECLARATION | INCLUDE_MIXIN;
 
             //declaration : property S* ':' S* value;
             //
@@ -228,6 +240,15 @@ namespace CssIronyParser
             FONT_FAMILY.Rule = VAR_REFERENCE | MakePlusRule(FONT_FAMILY, comma, FONT_FAMILY_MEMBER);
             FONT_FAMILY_MEMBER.Rule = ident | font_name | "sans-serif" | "serif" | "monospace" | "cursive" | "fantasy" | "caption" | "icon" | "menu" | "message-box" | "small-caption" | "status-bar";
 
+            MIXIN_RULE.Rule = mixin + MIXIN_FUNCTION + MIXIN_BODY;
+            MIXIN_FUNCTION.Rule = ident + left_param + MIXIN_ARGS_LIST + right_param;
+            MIXIN_ARGS_LIST.Rule = MakeStarRule(MIXIN_ARGS_LIST, VAR_PROPERTY);
+            MIXIN_BODY.Rule = l_paran + BLOCK_ITEMS + r_paran;
+
+            INCLUDE_MIXIN.Rule = include + MIXIN_CALL + semicolon;
+            MIXIN_CALL.Rule = ident + left_param + MIXIN_CALL_ARGS + right_param;
+            MIXIN_CALL_ARGS.Rule = MakeStarRule(MIXIN_CALL_ARGS, CALL_ARGUMENT);
+            CALL_ARGUMENT.Rule = MIXIN_CALL | CSS_UNIT_VALUE | percentage | VAR_REFERENCE | CSS_UNIT_VALUE | zero_terminal | color_rgb | ident | "none" | "block" | "inline-block";
 
             //var_color.Rule = color_rgb;
             //var_declare_members.Rule = MakePlusRule(var_declare_members, comma, var_declare_member);
@@ -311,9 +332,9 @@ namespace CssIronyParser
          **/
             #endregion
 
-            MarkPunctuation(colon, semicolon, l_paran, r_paran, single_quote);
+            MarkPunctuation(colon, semicolon, l_paran, r_paran, single_quote, left_param, right_param);
             MarkTransient(VAR_SYMBOL, VAR_PROPERTY_DECLARATION, VAR_DECLARATION, VALUE_ITEM_GROUP, BLOCK_ITEM, PROPERTY, DECLARATION_VALUES);
-            MarkReservedWords("none", "block", "inline-block", "font");
+            MarkReservedWords("none", "block", "inline-block", "font", "@mixin");
 
             //Set grammar root
             this.Root = STYLESHEET;
