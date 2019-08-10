@@ -63,9 +63,9 @@ namespace ScssIronyParser
             //var unicode_6 = new RegexBasedTerminal("unicode_6", @"u\+[0-9a-f]{6}");
             //var unicode_7 = new RegexBasedTerminal("unicode_7", @"u\+[0-9a-f]{1,6}-[0-9a-f]{1,6}");
 
-            var ident = new IdentifierTerminal("ident", "-.", "-.");
+            var dash_ident = new IdentifierTerminal("dash_ident", "-", "-");
             var NUMBER = new NumberLiteral("NUMBER", NumberOptions.DisableQuickParse);
-            var css_number = new NumberLiteral("CSS_NUMBER", NumberOptions.AllowLetterAfter);
+            var css_number = new NumberLiteral("CSS_NUMBER", NumberOptions.AllowLetterAfter | NumberOptions.AllowSign);
             var percentage = new RegexBasedTerminal("PERCENTAGE", @"[0-9]+[\%]");
             var zero_terminal = new RegexBasedTerminal("ZERO_TERMINAL", @"[0]");
 
@@ -75,9 +75,44 @@ namespace ScssIronyParser
             #endregion
 
             #region 2. Non-terminals
-            var CSS_UNIT = new NonTerminal("CSS_UNIT", ToTerm("px") | ToTerm("em") | ToTerm("deg") | ToTerm("rem"));
+            var CSS_UNIT = new NonTerminal("CSS_UNIT",
+                Empty 
+                // absolute
+                | ToTerm("cm")
+                | ToTerm("mm")
+                | ToTerm("Q")
+                | ToTerm("in")
+                | ToTerm("px")
+                | ToTerm("pt")
+                | ToTerm("pc")
+                // relative 
+                | ToTerm("em")
+                | ToTerm("ex")
+                | ToTerm("ch")
+                | ToTerm("rem")
+                | ToTerm("vw")
+                | ToTerm("vh")
+                | ToTerm("vmin")
+                | ToTerm("vmax")
+                // angles
+                | ToTerm("deg")
+                | ToTerm("grad")
+                | ToTerm("rad")
+                | ToTerm("turn")
+                 // times
+                 | ToTerm("s")
+                 | ToTerm("ms")
+                 // frequency
+                 | ToTerm("Hz")
+                 | ToTerm("kHz")
+                 // resolution
+                 | ToTerm("dpi")
+                 | ToTerm("dpcm")
+                 | ToTerm("dppx")
+            );
             var VAR_SYMBOL = new NonTerminal("VAR_SYMBOL", ToTerm("$"));
             var AT_SYMBOL = new NonTerminal("AT_SYMBOL", ToTerm("@"));
+            var DOT_IDENT = new NonTerminal("DOT_IDENT");
             var CDO = new NonTerminal("CDO", ToTerm("<!--"));
             var CDC = new NonTerminal("CDC", ToTerm("-->"));
             var DASHMATCH = new NonTerminal("dashmatch", ToTerm(@"|="));
@@ -103,7 +138,9 @@ namespace ScssIronyParser
             var VAR_DECLARATION = new NonTerminal("VAR_DECLARATION");
 
             var BLOCK = new NonTerminal("BLOCK");
+            var BLOCK_BODY = new NonTerminal("BLOCK_BODY");
             var BLOCK_IDENTIFIER = new NonTerminal("BLOCK_IDENTIFIER");
+            var NESTED_IDENTIFIER = new NonTerminal("NESTED_IDENTIFIER");
             var BLOCK_IDENTIFIERS = new NonTerminal("BLOCK_IDENTIFIERS");
             var BLOCK_ITEMS = new NonTerminal("BLOCK_ITEMS");
             var BLOCK_ITEM = new NonTerminal("BLOCK_ITEM");
@@ -112,7 +149,7 @@ namespace ScssIronyParser
             var VALUE_ITEM_GROUP = new NonTerminal("VALUE_3");
             var VALUE = new NonTerminal("VALUE");
             var DECLARATION_VALUES = new NonTerminal("DECLARATION_VALUES");
-            var VAR_REFERENCE = new NonTerminal("VAR_REFERENCE", VAR_SYMBOL + ident);
+            var VAR_REFERENCE = new NonTerminal("VAR_REFERENCE");
 
             var IMPORT_RULE = new NonTerminal("IMPORT_RULE");
 
@@ -125,15 +162,17 @@ namespace ScssIronyParser
             var FONT_FAMILY = new NonTerminal("FONT_FAMILY");
             var FONT_FAMILY_MEMBER = new NonTerminal("FONT_FAMILY_MEMBER");
             var UNIT_SIZE = new NonTerminal("UNIT_SIZE");
-            var FONT_OPTIONAL = new NonTerminal("FONT_OPTIONAL");
+
             var MIXIN_RULE = new NonTerminal("MIXIN_RULE");
             var MIXIN_FUNCTION = new NonTerminal("MIXIN_FUNCTION");
             var MIXIN_BODY = new NonTerminal("MIXIN_BODY");
             var MIXIN_ARGS_LIST = new NonTerminal("MIXIN_ARGS_LIST");
+            var MIXIN_FUNC_ARGS = new NonTerminal("MIXIN_FUNC_ARGS");
 
             var INCLUDE_MIXIN = new NonTerminal("INCLUDE_MIXIN");
             var MIXIN_CALL = new NonTerminal("MIXIN_CALL");
             var MIXIN_CALL_ARGS = new NonTerminal("MIXIN_CALL_ARGS");
+            var MIXIN_CALL_ARGS_LIST = new NonTerminal("MIXIN_CALL_ARGS");
             var STRING = new NonTerminal("STRING");
 
             var STATEMENTS = new NonTerminal("STATEMENTS");
@@ -141,9 +180,11 @@ namespace ScssIronyParser
             var CHARSET_RULE = new NonTerminal("CHARSET_RULE");
 
             var CSS_IMPORT = new NonTerminal("CSS_IMPORT");
+            var IMPORT_KEYWORD = new NonTerminal("IMPORT_KEYWORD");
             var CSS_IMPORT_LOCATION = new NonTerminal("CSS_IMPORT_LOCATION");
+            var CSS_IMPORT_URL = new NonTerminal("CSS_IMPORT_URL");
             var SCSS_IMPORT = new NonTerminal("SCSS_IMPORT");
-            var IMPORT_MODULES = new NonTerminal("IMPORT_MODULES");
+            var SCSS_IMPORT_MODULES = new NonTerminal("SCSS_IMPORT_MODULES");
             var MEDIA_QUERY_LIST_OPTIONAL = new NonTerminal("MEDIA_QUERY_LIST_OPTIONAL");
             var MEDIA_QUERY_LIST = new NonTerminal("MEDIA_QUERY_LIST");
             var MEDIA_QUERY = new NonTerminal("MEDIA_QUERY");
@@ -167,6 +208,7 @@ namespace ScssIronyParser
 
             var MEDIA_NOT = new NonTerminal("MEDIA_NOT");
             var MEDIA_FEATURE = new NonTerminal("MEDIA_FEATURE");
+            var MEDIA_FEATURE_GROUP = new NonTerminal("MEDIA_FEATURE_GROUP");
             var GENERAL_ENCLOSED = new NonTerminal("GENERAL_ENCLOSED");
 
             var MF_PLAIN = new NonTerminal("MF_PLAIN");
@@ -180,6 +222,8 @@ namespace ScssIronyParser
             var MF_RANGE_3_COMPARE = new NonTerminal("MF_RANGE_3_COMPARE");
             var MF_RANGE_COMPARE = new NonTerminal("MF_RANGE_COMPARE");
             var MF_VALUE = new NonTerminal("MF_VALUE");
+
+            var MIXIN_PARAM_REPLACE = new NonTerminal("MIXIN_PARAM_REPLACE");
 
             //  var CALL_ARGUMENT = new NonTerminal("CALL_ARGUMENT");
 
@@ -218,23 +262,28 @@ namespace ScssIronyParser
 
             CHARSET_RULE.Rule = charset + double_quotestr + semicolon;
 
-            STATEMENT.Rule = VAR_RULE | BLOCK | IMPORT_RULE | MIXIN_RULE | CHARSET_RULE;
+        //    STATEMENT.Rule = VAR_RULE | BLOCK | IMPORT_RULE | MIXIN_RULE | CHARSET_RULE | INCLUDE_MIXIN;
+            STATEMENT.Rule = VAR_RULE | BLOCK | IMPORT_RULE | MIXIN_RULE | CHARSET_RULE | INCLUDE_MIXIN;
 
             ////var_declaration
             ////var_declaration.Rule = var_property + S_star + var_separator + S_star;
             VAR_RULE.Rule = VAR_PROPERTY + colon + VAR_PROPERTY_DECLARATION + semicolon;
-            VAR_PROPERTY.Rule = VAR_SYMBOL + ident;
+            VAR_PROPERTY.Rule = VAR_SYMBOL + dash_ident;
             VAR_PROPERTY_DECLARATION.Rule = VAR_DECLARATION_LIST | color_rgb;
             VAR_DECLARATION_LIST.Rule = MakePlusRule(VAR_DECLARATION_LIST, comma, VAR_DECLARATION);
-            VAR_DECLARATION.Rule = ident;
+            VAR_DECLARATION.Rule = dash_ident;
 
             //block       : '{' S* [ any | block | ATKEYWORD S* | ';' S* ]* '}' S*;
-            BLOCK.Rule = BLOCK_IDENTIFIERS + left_brace + BLOCK_ITEMS + right_brace;
-            BLOCK_IDENTIFIERS.Rule = MakePlusRule(BLOCK_IDENTIFIERS, comma, BLOCK_IDENTIFIER);
+            BLOCK.Rule = BLOCK_IDENTIFIERS + BLOCK_BODY;
+            BLOCK_BODY.Rule = left_brace + BLOCK_ITEMS + right_brace;
+            BLOCK_IDENTIFIERS.Rule = MakePlusRule(BLOCK_IDENTIFIERS, comma, NESTED_IDENTIFIER);
 
-            BLOCK_IDENTIFIER.Rule = ident | AT_SYMBOL + ident;
+            NESTED_IDENTIFIER.Rule = MakePlusRule(NESTED_IDENTIFIER, BLOCK_IDENTIFIER);
+            BLOCK_IDENTIFIER.Rule = DOT_IDENT | AT_SYMBOL + DOT_IDENT | dash_ident | AT_SYMBOL + dash_ident;
+            DOT_IDENT.Rule = "." + dash_ident;
+
             BLOCK_ITEMS.Rule = MakeStarRule(BLOCK_ITEMS, BLOCK_ITEM);
-            BLOCK_ITEM.Rule = BLOCK | FONT_GROUP | DECLARATION | INCLUDE_MIXIN;
+            BLOCK_ITEM.Rule = BLOCK | FONT_GROUP | DECLARATION | INCLUDE_MIXIN | IMPORT_RULE;
 
             //declaration : property S* ':' S* value;
             //
@@ -242,41 +291,49 @@ namespace ScssIronyParser
 
             //property    : IDENT;
             //
-            PROPERTY.Rule = ident;
+            PROPERTY.Rule = dash_ident;
 
-            DECLARATION_VALUES.Rule = VALUE + semicolon;
+            DECLARATION_VALUES.Rule = BLOCK_BODY | VALUE + semicolon;
             
             //PERCENTAGE.Precedence = 1;
 
             VALUE.Rule = MakePlusRule(VALUE, VALUE_ITEM_GROUP);
             // VALUE_1.Precedence = 4;
 
-            VALUE_ITEM_GROUP.Rule = MIXIN_CALL | percentage | VAR_REFERENCE | CSS_UNIT_VALUE | zero_terminal | color_rgb | ident | "none" | "block" | "inline-block";
+            VALUE_ITEM_GROUP.Rule = MIXIN_CALL | percentage | VAR_REFERENCE | CSS_UNIT_VALUE | zero_terminal | color_rgb | dash_ident | "none" | "block" | "inline-block" | STRING;
             // VALUE.Precedence = 3;
 
             CSS_UNIT_VALUE.Rule = css_number + CSS_UNIT;
             //VALUE_2.Precedence = 1;
 
-            VAR_REFERENCE.Rule = VAR_SYMBOL + ident;
+            VAR_REFERENCE.Rule = VAR_SYMBOL + dash_ident;
 
             STRING.Rule = single_quotestr | double_quotestr;
 
             // SCSS IMPORT RULE
             // + CSS IMPORT RULE + media query + url
             // + SCSS comma array relative using node module
-            IMPORT_RULE.Rule = import + CSS_IMPORT + semicolon | import + SCSS_IMPORT + semicolon;
+            IMPORT_RULE.Rule = IMPORT_KEYWORD + CSS_IMPORT + semicolon | IMPORT_KEYWORD + SCSS_IMPORT + semicolon;
+            IMPORT_KEYWORD.Rule = import;
+            
             CSS_IMPORT.Rule = CSS_IMPORT_LOCATION + MEDIA_QUERY_LIST_OPTIONAL;
+
+            SCSS_IMPORT.Rule = SCSS_IMPORT_MODULES;
+            SCSS_IMPORT_MODULES.Rule = MakePlusRule(SCSS_IMPORT_MODULES, comma, STRING);
+
+
             MEDIA_QUERY_LIST_OPTIONAL.Rule = Empty | MEDIA_QUERY_LIST;
-            CSS_IMPORT_LOCATION.Rule = STRING | url + left_round + STRING + right_round;
+            CSS_IMPORT_LOCATION.Rule = STRING | url + left_round + CSS_IMPORT_URL + right_round;
+            CSS_IMPORT_URL.Rule = STRING | dash_ident;
             MEDIA_QUERY_LIST.Rule = MakePlusRule(MEDIA_QUERY_LIST, comma, MEDIA_QUERY);
 
            // MEDIA_QUERY.Rule = MEDIA_CONDITION + MEDIA_TYPE + MEDIA_CONDITION_WITHOUT_OR_OPTIONAL;
-            MEDIA_QUERY.Rule = MEDIA_CONDITION | MEDIA_TYPE_CONDITION + MEDIA_TYPE;
+            MEDIA_QUERY.Rule = MEDIA_CONDITION | MEDIA_TYPE_CONDITION + MEDIA_TYPE + MEDIA_CONDITION_WITHOUT_OR_OPTIONAL;
             MEDIA_TYPE_CONDITION.Rule = Empty | "not" | "only";
             MEDIA_CONDITION.Rule = "not" + MEDIA_IN_PARENS | MEDIA_AND | MEDIA_OR | MEDIA_IN_PARENS;
             MEDIA_TYPE.Rule = ToTerm("all") | ToTerm("print") | ToTerm("screen") | ToTerm("speech");
 
-            MEDIA_CONDITION_WITHOUT_OR_OPTIONAL.Rule = Empty | MEDIA_CONDITION_WITHOUT_OR;
+            MEDIA_CONDITION_WITHOUT_OR_OPTIONAL.Rule = Empty | "and" + MEDIA_CONDITION_WITHOUT_OR;
             MEDIA_CONDITION_WITHOUT_OR.Rule = MEDIA_NOT | MEDIA_AND | MEDIA_IN_PARENS;
 
             MEDIA_NOT.Rule = "not" + MEDIA_IN_PARENS;
@@ -287,28 +344,26 @@ namespace ScssIronyParser
 
             MEDIA_OR.Rule = MEDIA_IN_PARENS + MEDIA_OR_RHS;
             MEDIA_OR_RHS.Rule = MakePlusRule(MEDIA_OR_RHS, MEDIA_OR_CLAUSE);
-            MEDIA_OR_CLAUSE.Rule = left_square_b + "or" + MEDIA_IN_PARENS + right_square_b;
+            MEDIA_OR_CLAUSE.Rule = "or" + MEDIA_IN_PARENS;
 
-            MEDIA_IN_PARENS.Rule = left_brace + MEDIA_CONDITION + right_brace | MEDIA_FEATURE | GENERAL_ENCLOSED;
-            GENERAL_ENCLOSED.Rule = left_square_b + MIXIN_CALL + right_square_b | left_round + ident + VALUE_ITEM_GROUP + right_round;
+            MEDIA_IN_PARENS.Rule = left_round + MEDIA_CONDITION + right_round | MEDIA_FEATURE | GENERAL_ENCLOSED;
+            GENERAL_ENCLOSED.Rule = MIXIN_CALL | left_round + dash_ident + VALUE_ITEM_GROUP + right_round;
 
-            MEDIA_FEATURE.Rule = MF_PLAIN | MF_BOOLEAN | MF_RANGE;
+            MEDIA_FEATURE.Rule = left_round + MEDIA_FEATURE_GROUP + right_round;
+            MEDIA_FEATURE_GROUP.Rule = MF_PLAIN | MF_BOOLEAN | MF_RANGE; 
 
-            MF_PLAIN.Rule = ident + colon + MF_VALUE;
-            MF_VALUE.Rule = NUMBER | ident; // | dimension | ratio;
-            MF_BOOLEAN.Rule = ident;
+            MF_PLAIN.Rule = dash_ident + colon + MF_VALUE;
+            MF_VALUE.Rule = CSS_UNIT_VALUE | dash_ident; // | dimension | ratio;
+            MF_BOOLEAN.Rule = dash_ident;
 
             MF_RANGE.Rule = MF_RANGE_0 | MF_RANGE_1 | MF_RANGE_2 | MF_RANGE_3;
-            MF_RANGE_0.Rule = ident + MF_RANGE_COMPARE + MF_VALUE;
-            MF_RANGE_1.Rule = MF_VALUE + MF_RANGE_COMPARE + ident;
-            MF_RANGE_2.Rule = MF_VALUE + MF_RANGE_2_COMPARE + ident + MF_RANGE_2_COMPARE + MF_VALUE;
+            MF_RANGE_0.Rule = dash_ident + MF_RANGE_COMPARE + MF_VALUE;
+            MF_RANGE_1.Rule = MF_VALUE + MF_RANGE_COMPARE + dash_ident;
+            MF_RANGE_2.Rule = MF_VALUE + MF_RANGE_2_COMPARE + dash_ident + MF_RANGE_2_COMPARE + MF_VALUE;
             MF_RANGE_2_COMPARE.Rule = less_than | le_than;
-            MF_RANGE_3.Rule = MF_VALUE + MF_RANGE_3_COMPARE + ident + MF_RANGE_3_COMPARE + MF_VALUE;
+            MF_RANGE_3.Rule = MF_VALUE + MF_RANGE_3_COMPARE + dash_ident + MF_RANGE_3_COMPARE + MF_VALUE;
             MF_RANGE_3_COMPARE.Rule = greater_than | ge_than;
             MF_RANGE_COMPARE.Rule = less_than | greater_than | ge_than | le_than;
-
-            SCSS_IMPORT.Rule = import + IMPORT_MODULES + semicolon;
-            IMPORT_MODULES.Rule = MakePlusRule(IMPORT_MODULES, comma, STRING);
 
             FONT_GROUP.Rule = font + colon + FONT_STYLE + FONT_VARIANT + FONT_WEIGHT + FONT_SIZE + FONT_FAMILY + semicolon;
 
@@ -347,16 +402,20 @@ namespace ScssIronyParser
             LINE_WEIGHT.Rule = UNIT_SIZE;           
        
             FONT_FAMILY.Rule = VAR_REFERENCE | MakePlusRule(FONT_FAMILY, comma, FONT_FAMILY_MEMBER);
-            FONT_FAMILY_MEMBER.Rule = ident | STRING | "sans-serif" | "serif" | "monospace" | "cursive" | "fantasy" | "caption" | "icon" | "menu" | "message-box" | "small-caption" | "status-bar";
+            FONT_FAMILY_MEMBER.Rule = dash_ident | STRING | "sans-serif" | "serif" | "monospace" | "cursive" | "fantasy" | "caption" | "icon" | "menu" | "message-box" | "small-caption" | "status-bar";
 
             MIXIN_RULE.Rule = mixin + MIXIN_FUNCTION + MIXIN_BODY;
-            MIXIN_FUNCTION.Rule = ident + left_round + MIXIN_ARGS_LIST + right_round;
-            MIXIN_ARGS_LIST.Rule = MakeStarRule(MIXIN_ARGS_LIST, VAR_PROPERTY);
-            MIXIN_BODY.Rule = left_brace + BLOCK_ITEMS + right_brace;
+            MIXIN_FUNCTION.Rule = dash_ident + MIXIN_FUNC_ARGS;
+            MIXIN_FUNC_ARGS.Rule = Empty | left_round + MIXIN_ARGS_LIST + right_round;
+            MIXIN_ARGS_LIST.Rule = MakePlusRule(MIXIN_ARGS_LIST, comma, VAR_PROPERTY);
+            MIXIN_BODY.Rule = BLOCK_BODY;
+
+            MIXIN_PARAM_REPLACE.Rule = "#{" + VAR_PROPERTY + "}";
 
             INCLUDE_MIXIN.Rule = include + MIXIN_CALL + semicolon;
-            MIXIN_CALL.Rule = ident + left_round + MIXIN_CALL_ARGS + right_round;
-            MIXIN_CALL_ARGS.Rule = MakeStarRule(MIXIN_CALL_ARGS, VALUE_ITEM_GROUP);
+            MIXIN_CALL.Rule = dash_ident + MIXIN_CALL_ARGS;
+            MIXIN_CALL_ARGS.Rule = Empty | left_round + MIXIN_CALL_ARGS_LIST + right_round;
+            MIXIN_CALL_ARGS_LIST.Rule = MakeStarRule(MIXIN_CALL_ARGS_LIST, comma, VALUE_ITEM_GROUP);
            // CALL_ARGUMENT.Rule = MIXIN_CALL | CSS_UNIT_VALUE | percentage | VAR_REFERENCE | CSS_UNIT_VALUE | zero_terminal | color_rgb | ident | "none" | "block" | "inline-block";
 
             //var_color.Rule = color_rgb;
@@ -442,8 +501,9 @@ namespace ScssIronyParser
             #endregion
 
             MarkPunctuation(colon, semicolon, left_brace, right_brace, single_quote, left_round, right_round);
+            MarkNotReported(import, IMPORT_KEYWORD, url, STRING);
             MarkTransient(VAR_SYMBOL, VAR_PROPERTY_DECLARATION, VAR_DECLARATION, VALUE_ITEM_GROUP, BLOCK_ITEM, PROPERTY, DECLARATION_VALUES, FIRST_CHARSET);
-            MarkReservedWords("none", "block", "inline-block", "font", "@mixin");
+            MarkReservedWords("none", "block", "inline-block", "font", "@mixin" , "@import");
 
             //Set grammar root
             this.Root = STYLESHEET;
