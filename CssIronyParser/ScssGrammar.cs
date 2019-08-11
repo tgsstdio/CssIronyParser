@@ -28,6 +28,7 @@ namespace ScssIronyParser
             var plus = ToTerm("+");
             var tilde = ToTerm("~");
             var hash = ToTerm("#");
+            var eq = ToTerm("=");
 
             var var_symbol = ToTerm("$");
             var at_symbol = ToTerm("@");
@@ -73,8 +74,15 @@ namespace ScssIronyParser
             //var unicode_7 = new RegexBasedTerminal("unicode_7", @"u\+[0-9a-f]{1,6}-[0-9a-f]{1,6}");
 
             var ident_token = new IdentifierTerminal("ident_token", "-", "-");
-            var NUMBER = new NumberLiteral("NUMBER", NumberOptions.DisableQuickParse);
-            var css_number = new NumberLiteral("CSS_NUMBER", NumberOptions.AllowLetterAfter | NumberOptions.AllowSign);
+            ident_token.Precedence = 10;
+            //var ident_token = new RegexBasedTerminal("ident-token", @"[-]?([_a-z]|[^\0-\177]|((\[0-9a-f]{1,6}(\r\n|[ \n\r\t\f])?)|\[^\n\r\f0-9a-f]))([_a-zA-Z0-9-]|[^\0-\177]|((\[0-9a-f]{1,6}(\r\n|[ \n\r\t\f])?)|\[^\n\r\f0-9a-f]))*");
+
+            var NUMBER = new NumberLiteral("NUMBER");
+            var css_number = new NumberLiteral("CSS_NUMBER", NumberOptions.AllowLetterAfter | NumberOptions.AllowSign | NumberOptions.DisableQuickParse);
+            css_number.Precedence = 1;
+            //css_number.AddSuffix("px", typeCodes: System.TypeCode.Int32);
+            //css_number.AddSuffix("em", typeCodes: System.TypeCode.Single);
+            //css_number.AddSuffix("rem", typeCodes: System.TypeCode.Int32);
             var percentage = new RegexBasedTerminal("PERCENTAGE", @"[0-9]+[\%]");
             var zero_terminal = new RegexBasedTerminal("ZERO_TERMINAL", @"[0]");
 
@@ -109,7 +117,7 @@ namespace ScssIronyParser
                 | ToTerm("rad")
                 | ToTerm("turn")
                  // times
-                 | ToTerm("s")
+             //    | ToTerm("s") // s
                  | ToTerm("ms")
                  // frequency
                  | ToTerm("Hz")
@@ -122,7 +130,6 @@ namespace ScssIronyParser
 
             var CDO = new NonTerminal("CDO", ToTerm("<!--"));
             var CDC = new NonTerminal("CDC", ToTerm("-->"));
-            var DASHMATCH = new NonTerminal("dashmatch", ToTerm(@"|="));
 
             var CSS_UNIT_VALUE = new NonTerminal("CSS_UNIT_VALUE");
             //    //var DIMENSION = new NonTerminal("DIMENSION", num + ident);
@@ -154,11 +161,21 @@ namespace ScssIronyParser
             var ID_SELECTOR = new NonTerminal("'#' ID_SELECTOR");
             var CLASS_SELECTOR = new NonTerminal("'.' CLASS_SELECTOR");
             var ATTRIBUTE_SELECTOR = new NonTerminal("'[attr]' ATTRIBUTE_SELECTOR");
+            var ATTRIBUTE_OP_COND = new NonTerminal("ATTRIBUTE_OP_COND");
+            var ATTRIBUTE_OP = new NonTerminal("ATTRIBUTE_OP");
+            var ATTRIBUTE_OP_EQUAL = new NonTerminal("ATTRIBUTE_OP_STARTS_WITH");
+            var ATTRIBUTE_OP_STARTS_WITH = new NonTerminal("ATTRIBUTE_OP_STARTS_WITH");
+            var ATTRIBUTE_OP_ENDS_WITH = new NonTerminal("ATTRIBUTE_OP_ENDS_WITH");
+            var ATTRIBUTE_OP_LIST_MATCH = new NonTerminal("ATTRIBUTE_OP_LIST_MATCH");
+            var ATTRIBUTE_OP_DASH_MATCH = new NonTerminal("ATTRIBUTE_OP_DASH_MATCH");
+            var ATTRIBUTE_CASE_SENSITIVE = new NonTerminal("ATTR_CASE_SENSITIVE");
+
             var PARENT_CHILD_SELECTOR = new NonTerminal("'>' Child combinator");
             var ADJACENT_SELECTOR = new NonTerminal("'+' Adjacent sibling combinator");
             var PRECEDING_SELECTOR = new NonTerminal("'~' General sibling combinator");
             var SELECTOR_NODE = new NonTerminal("SELECTOR_NODE");
             var SELECTOR_OP = new NonTerminal("SELECTOR_OP");
+            var SELECTOR_PARENT_AMP = new NonTerminal("'&' SELECTOR_PARENT_AMP");
             var ADDITIONAL_TOKENS = new NonTerminal("ADDITIONAL_TOKENS");
             var COMBINATOR = new NonTerminal("COMBINATOR");
             var INSIDE_SELECTOR = new NonTerminal("' ' Descendant combinator");
@@ -196,11 +213,19 @@ namespace ScssIronyParser
             var MIXIN_BODY = new NonTerminal("MIXIN_BODY");
             var MIXIN_ARGS_LIST = new NonTerminal("MIXIN_ARGS_LIST");
             var MIXIN_FUNC_ARGS = new NonTerminal("MIXIN_FUNC_ARGS");
+            var MIXIN_BODY_ITEMS = new NonTerminal("MIXIN_BODY_ITEMS");
+            var MIXIN_BODY_ITEM = new NonTerminal("MIXIN_BODY_ITEM");
+            var MIXIN_BODY_ASSIGNMENT = new NonTerminal("MIXIN_BODY_ASSIGNMENT");
+            var MIXIN_BODY_BLOCK = new NonTerminal("MIXIN_BODY_BLOCK");
+            var MIXIN_PARAM_REPLACE = new NonTerminal("MIXIN_PARAM_REPLACE");
+            var MIXIN_BODY_ASSIGNMENT_LVALUE = new NonTerminal("MIXIN_BODY_ASSIGNMENT_LVALUE");
+            var MIXIN_BODY_ASSIGNMENT_RVALUE = new NonTerminal("MIXIN_BODY_ASSIGNMENT_RVALUE");
 
             var INCLUDE_MIXIN = new NonTerminal("INCLUDE_MIXIN");
+            var INCLUDE_RULE = new NonTerminal("INCLUDE_RULE");
             var MIXIN_CALL = new NonTerminal("MIXIN_CALL");
             var MIXIN_CALL_ARGS = new NonTerminal("MIXIN_CALL_ARGS");
-            var MIXIN_CALL_ARGS_LIST = new NonTerminal("MIXIN_CALL_ARGS");
+            var MIXIN_CALL_ARGS_LIST = new NonTerminal("MIXIN_CALL_ARGS_LIST");
             var STRING = new NonTerminal("STRING");
 
             var STATEMENTS = new NonTerminal("STATEMENTS");
@@ -292,16 +317,24 @@ namespace ScssIronyParser
             CHARSET_RULE.Rule = charset + double_quotestr + semicolon;
 
             //    STATEMENT.Rule = VAR_RULE | BLOCK | IMPORT_RULE | MIXIN_RULE | CHARSET_RULE | INCLUDE_MIXIN;
-            STATEMENT.Rule = VAR_RULE | BLOCK | IMPORT_RULE | MIXIN_RULE | CHARSET_RULE | INCLUDE_MIXIN;
+            STATEMENT.Rule =
+                VAR_RULE
+               // | SELECTOR
+              // | DECLARATION
+                //    | IMPORT_RULE;
+                //   | MIXIN_RULE
+                | CHARSET_RULE
+                | INCLUDE_RULE;
 
             ////var_declaration
             ////var_declaration.Rule = var_property + S_star + var_separator + S_star;
-            VAR_RULE.Rule = VAR_PROPERTY + VAR_PROPERTY_DECLARATION;
+            VAR_RULE.Rule = VAR_PROPERTY + colon + VAR_PROPERTY_DECLARATION + semicolon;
             VAR_PROPERTY.Rule = var_symbol + ident_token;
             VAR_PROPERTY_DECLARATION.Rule =
-                colon + FONT_FAMILY + semicolon
-                | colon + ident_token + semicolon
-                | colon + color_rgb + semicolon;
+                  FONT_FAMILY
+                | FONT_PROPERTY_RHS
+              //  | CSS_UNIT_VALUE
+                | color_rgb;
 
             //VAR_DECLARATION_LIST.Rule = MakePlusRule(VAR_DECLARATION_LIST, comma, VAR_DECLARATION);
             //VAR_DECLARATION.Rule = ident_token;
@@ -313,7 +346,7 @@ namespace ScssIronyParser
             BLOCK_ITEMS.Rule = MakeStarRule(BLOCK_ITEMS, BLOCK_ITEM);
             //BLOCK_ITEM.Rule = BLOCK | FONT_GROUP | DECLARATION | INCLUDE_MIXIN | IMPORT_RULE;
 
-            BLOCK_ITEM.Rule = FONT_PROPERTY | DECLARATION | INCLUDE_MIXIN | IMPORT_RULE | CHILD_BLOCK;
+            BLOCK_ITEM.Rule = FONT_PROPERTY | DECLARATION | INCLUDE_RULE | IMPORT_RULE | CHILD_BLOCK;
 
             BLOCK_BODY.Rule = left_brace + font + colon + right_brace;
             CHILD_BLOCK.Rule = SELECTOR + left_brace + BLOCK_ITEMS + right_brace;
@@ -343,7 +376,25 @@ namespace ScssIronyParser
             CLASS_NAME.Rule = dot + ident_token;
 
             ID_SELECTOR.Rule = hash + ident_token;
-            ATTRIBUTE_SELECTOR.Rule = Empty | left_square_b + ident_token + right_square_b;
+            ATTRIBUTE_SELECTOR.Rule = Empty | left_square_b + ident_token + ATTRIBUTE_OP_COND + right_square_b;
+            ATTRIBUTE_OP_COND.Rule = Empty | ATTRIBUTE_OP + VALUE + ATTRIBUTE_CASE_SENSITIVE;
+
+            ATTRIBUTE_OP.Rule = 
+                ATTRIBUTE_OP_EQUAL
+                | ATTRIBUTE_OP_LIST_MATCH 
+                | ATTRIBUTE_OP_STARTS_WITH
+                | ATTRIBUTE_OP_ENDS_WITH
+                | ATTRIBUTE_OP_DASH_MATCH;
+            ATTRIBUTE_CASE_SENSITIVE.Rule =
+                Empty 
+                | ToTerm("s")
+                | ToTerm("i");
+            ATTRIBUTE_OP_DASH_MATCH.Rule = ToTerm(@"|=");
+            ATTRIBUTE_OP_EQUAL.Rule = eq;
+            ATTRIBUTE_OP_LIST_MATCH.Rule = ToTerm("~=");
+            ATTRIBUTE_OP_STARTS_WITH.Rule = ToTerm("^=");
+            ATTRIBUTE_OP_ENDS_WITH.Rule = ToTerm("$=");
+
             //PARENT_CHILD_SELECTOR.Rule = MakePlusRule(PARENT_CHILD_SELECTOR, ge_than, SELECTOR_ITEM);
             //ADJACENT_SELECTOR.Rule = MakePlusRule(ADJACENT_SELECTOR, plus, SELECTOR_ITEM);
             //PRECEDING_SELECTOR.Rule = MakePlusRule(PRECEDING_SELECTOR, tilde, SELECTOR_ITEM);
@@ -352,15 +403,16 @@ namespace ScssIronyParser
             ADDITIONAL_TOKENS.Rule = Empty | MakePlusRule(ADDITIONAL_TOKENS, COMBINATOR);
             SELECTOR_OP.Rule = PARENT_CHILD_SELECTOR | ADJACENT_SELECTOR | PRECEDING_SELECTOR | INSIDE_SELECTOR;
 
-            PARENT_CHILD_SELECTOR.Rule = ge_than;
+            PARENT_CHILD_SELECTOR.Rule = greater_than;
             INSIDE_SELECTOR.Rule = Empty;
             PRECEDING_SELECTOR.Rule = tilde;
             ADJACENT_SELECTOR.Rule = plus;
 
             COMBINATOR.Rule = SELECTOR_OP + NODE_ELEMENT;
             NODE_ELEMENT.Rule = ID_SELECTOR | TAG_SELECTOR + ATTRIBUTE_SELECTOR + CLASS_SELECTOR + PSUEDO_CLASS_OPTIONAL + PSUEDO_ELEMENT_OPTIONAL;
-            TAG_SELECTOR.Rule = Empty | ident_token | all_star;
+            TAG_SELECTOR.Rule = Empty | ident_token | all_star | SELECTOR_PARENT_AMP;
             PSUEDO_CLASS_OPTIONAL.Rule = Empty | colon + PSUEDO_CLASS_GROUP;
+            SELECTOR_PARENT_AMP.Rule = ToTerm("&");
 
             // TODO: find list of psuedo classes
             PSUEDO_CLASS_GROUP.Rule =
@@ -437,7 +489,9 @@ namespace ScssIronyParser
             //
             KEY.Rule = ident_token;
 
-            DECLARATION_VALUES.Rule = BLOCK_BODY | VALUE + semicolon;
+            DECLARATION_VALUES.Rule =
+                VALUE + semicolon
+                | left_brace + BLOCK_ITEMS + right_brace;
 
             //PERCENTAGE.Precedence = 1;
 
@@ -445,13 +499,14 @@ namespace ScssIronyParser
             // VALUE_1.Precedence = 4;
 
             VALUE_ITEM_GROUP.Rule =
-                MIXIN_CALL
+               // TODO: no-arg functions
+                 MIXIN_CALL
                 | percentage
                 | VAR_REFERENCE
                 | CSS_UNIT_VALUE
                 | zero_terminal
                 | color_rgb
-                | ident_token
+               // | ident_token
                 | "none"
                 | "block"
                 | "inline-block"
@@ -564,15 +619,28 @@ namespace ScssIronyParser
             MIXIN_FUNCTION.Rule = ident_token + MIXIN_FUNC_ARGS;
             MIXIN_FUNC_ARGS.Rule = Empty | left_round + MIXIN_ARGS_LIST + right_round;
             MIXIN_ARGS_LIST.Rule = MakePlusRule(MIXIN_ARGS_LIST, comma, VAR_PROPERTY);
-            MIXIN_BODY.Rule = BLOCK_BODY;
+            MIXIN_BODY.Rule = left_brace + MIXIN_BODY_ITEMS + right_brace;
+            MIXIN_BODY_ITEMS.Rule = MakeStarRule(MIXIN_BODY_ITEMS, MIXIN_BODY_ITEM);
+            MIXIN_BODY_ITEM.Rule =
+                  MIXIN_BODY_ASSIGNMENT + semicolon
+                | MIXIN_BODY_BLOCK
+                | IMPORT_RULE
+                | INCLUDE_MIXIN;
+            MIXIN_BODY_BLOCK.Rule =
+                  SELECTOR + MIXIN_BODY
+                | MIXIN_BODY_ASSIGNMENT_LVALUE + colon + MIXIN_BODY;
+            MIXIN_BODY_ASSIGNMENT.Rule = MIXIN_BODY_ASSIGNMENT_LVALUE + colon + MIXIN_BODY_ASSIGNMENT_RVALUE;
+            MIXIN_BODY_ASSIGNMENT_LVALUE.Rule = ident_token | MIXIN_PARAM_REPLACE;
+            MIXIN_BODY_ASSIGNMENT_RVALUE.Rule = VALUE_ITEM_GROUP | MIXIN_PARAM_REPLACE;
 
             // TODO : mixin sed
-            // MIXIN_PARAM_REPLACE.Rule = "#{" + VAR_PROPERTY + "}";
+            MIXIN_PARAM_REPLACE.Rule = ToTerm("#{") + VAR_PROPERTY + right_brace;
 
-            INCLUDE_MIXIN.Rule = include + MIXIN_CALL + semicolon;
-            MIXIN_CALL.Rule = ident_token + MIXIN_CALL_ARGS;
-            MIXIN_CALL_ARGS.Rule = Empty | left_round + MIXIN_CALL_ARGS_LIST + right_round;
-            MIXIN_CALL_ARGS_LIST.Rule = MakeStarRule(MIXIN_CALL_ARGS_LIST, comma, VALUE_ITEM_GROUP);
+            INCLUDE_RULE.Rule = include + INCLUDE_MIXIN + semicolon;
+            INCLUDE_MIXIN.Rule = MIXIN_CALL;
+            MIXIN_CALL.Rule = ident_token | ident_token + MIXIN_CALL_ARGS;
+            MIXIN_CALL_ARGS.Rule = left_round + MIXIN_CALL_ARGS_LIST + right_round;
+            MIXIN_CALL_ARGS_LIST.Rule = MakePlusRule(MIXIN_CALL_ARGS_LIST, comma, VALUE_ITEM_GROUP);
             // CALL_ARGUMENT.Rule = MIXIN_CALL | CSS_UNIT_VALUE | percentage | VAR_REFERENCE | CSS_UNIT_VALUE | zero_terminal | color_rgb | ident | "none" | "block" | "inline-block";
 
             //var_color.Rule = color_rgb;
@@ -657,9 +725,9 @@ namespace ScssIronyParser
          **/
             #endregion
 
-            MarkPunctuation(dot, charset, colon, plus, hash, semicolon, left_brace, right_brace, single_quote, left_round, right_round, left_square_b, right_square_b, at_symbol, var_symbol);
-            MarkNotReported(import, IMPORT_KEYWORD, url, STRING);
-            MarkTransient(VAR_DECLARATION, VAR_PROPERTY_DECLARATION, CLASS_NAME, VALUE_ITEM_GROUP, FIRST_CHARSET, KEY, BLOCK_ITEM, BLOCK_ITEMS, DECLARATION_VALUES, SELECTOR_GROUP, STATEMENT);
+            MarkPunctuation(dot, charset, colon, plus, hash, semicolon, left_brace, right_brace, single_quote, left_round, right_round, left_square_b, right_square_b, at_symbol, var_symbol, include);
+            MarkNotReported(import, IMPORT_KEYWORD, url, STRING, INCLUDE_RULE, include);
+            MarkTransient(VAR_DECLARATION, VAR_PROPERTY_DECLARATION, CLASS_NAME, VALUE_ITEM_GROUP, FIRST_CHARSET, KEY, BLOCK_ITEM, BLOCK_ITEMS, DECLARATION_VALUES, SELECTOR_GROUP, STATEMENT, MIXIN_BODY_ITEM, MIXIN_CALL_ARGS, INCLUDE_RULE);
             MarkReservedWords("none", "block", "inline-block", "@mixin", "@import");
 
             //Set grammar root
