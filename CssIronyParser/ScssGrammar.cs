@@ -33,6 +33,7 @@ namespace ScssIronyParser
             var var_symbol = ToTerm("$");
             var at_symbol = ToTerm("@");
             var dot = ToTerm(".");
+            var pipe = ToTerm("|");
 
             //  var name = new RegexBasedTerminal(@"([_a-zA-Z0-9-]|([^\0-\177])|((\[0-9a-f]{1,6}(\r\n|[ \n\r\t\f])?)|\[^\n\r\f0-9a-f]))+");
             ////   var ident = new RegexBasedTerminal(@"[-]?([_a-z]|[^\0-\177]|((\[0-9a-f]{1,6}(\r\n|[ \n\r\t\f])?)|\[^\n\r\f0-9a-f]))([_a-zA-Z0-9-]|[^\0-\177]|((\[0-9a-f]{1,6}(\r\n|[ \n\r\t\f])?)|\[^\n\r\f0-9a-f]))*");
@@ -116,7 +117,7 @@ namespace ScssIronyParser
                 | ToTerm("rad")
                 | ToTerm("turn")
                  // times
-             //    | ToTerm("s") // s
+                 //    | ToTerm("s") // s
                  | ToTerm("ms")
                  // frequency
                  | ToTerm("Hz")
@@ -153,10 +154,11 @@ namespace ScssIronyParser
             var CHILDREN = new NonTerminal("CHILDREN");
             var CHILD_BLOCK = new NonTerminal("CHILD_BLOCK");
 
-           // var SELECTOR_GROUP = new NonTerminal("SELECTOR_GROUP");
+            // var SELECTOR_GROUP = new NonTerminal("SELECTOR_GROUP");
             var CLASS_NAMES = new NonTerminal("'.' CLASS_NAMES");
             var CLASS_NAME = new NonTerminal("CLASS_NAME");
-            var SELECTOR = new NonTerminal("SELECTOR");
+            var SELECTOR_NAMESPACE = new NonTerminal("SELECTOR_NAMESPACE");
+            var TOP_LEVEL_SELECTOR = new NonTerminal("SELECTOR");
             var ID_SELECTOR = new NonTerminal("'#' ID_SELECTOR");
             var CLASS_SELECTOR = new NonTerminal("'.' CLASS_SELECTOR");
             var ATTRIBUTE_SELECTOR = new NonTerminal("'[attr]' ATTRIBUTE_SELECTOR");
@@ -172,20 +174,29 @@ namespace ScssIronyParser
             var PARENT_CHILD_SELECTOR = new NonTerminal("'>' Child combinator");
             var ADJACENT_SELECTOR = new NonTerminal("'+' Adjacent sibling combinator");
             var PRECEDING_SELECTOR = new NonTerminal("'~' General sibling combinator");
-            var SELECTOR_NODE = new NonTerminal("SELECTOR_NODE");
+            var TOP_LEVEL_MORE_NODES = new NonTerminal("SELECTOR_NODE");
             var SELECTOR_OP = new NonTerminal("SELECTOR_OP");
-            var SELECTOR_PARENT_AMP = new NonTerminal("'&' SELECTOR_PARENT_AMP");
-            var ADDITIONAL_TOKENS = new NonTerminal("ADDITIONAL_TOKENS");
-            var COMBINATOR = new NonTerminal("COMBINATOR");
+
+            var MID_LEVEL_SELECTOR = new NonTerminal("MID_LEVEL_SELECTOR");
+            var MID_SELECTOR_PARENT_AMP = new NonTerminal("'&' SELECTOR_PARENT_AMP");
+            var MID_SELECTOR_NODE_ELEMENT = new NonTerminal("MID_SELECTOR_NODE_ELEMENT");
+            var MID_LEVEL_SELECTOR_ADDITIONAL_NODES = new NonTerminal("MID_LEVEL_SELECTOR_ADDITIONAL_NODES");
+            var MID_LEVEL_MORE_NODES = new NonTerminal("MID_LEVEL_MORE_NODES");
+            var MID_LEVEL_TAIL_NODE = new NonTerminal("MID_LEVEL_TAIL_NODE");
+            var MID_TAG_SELECTOR = new NonTerminal("MID_TAG_SELECTOR");
+
+            var TOP_LEVEL_SELECTOR_ADDITIONAL_NODES = new NonTerminal("ADDITIONAL_TOKENS");
+            var AND_COMBINATOR = new NonTerminal("',' And combinator");
             var INSIDE_SELECTOR = new NonTerminal("' ' Descendant combinator");
-            var CHILD_NODE_ELEMENT = new NonTerminal("CHILD_NODE_ELEMENT");
-            var TOP_NODE_ELEMENT = new NonTerminal("TOP_NODE_ELEMENT");
+            var TOP_SELECTOR_NODE_ELEMENT = new NonTerminal("TOP_SELECTOR_NODE_ELEMENT");
+            var TOP_LEVEL_TAIL_NODE = new NonTerminal("TOP_LEVEL_TAIL_NODE");
             var TOP_TAG_SELECTOR = new NonTerminal("'el' TAG_SELECTOR");
-            var CHILD_TAG_SELECTOR = new NonTerminal("'el' CHILD_TAG_SELECTOR");
+            var SELECTOR_NODE_BODY = new NonTerminal("SELECTOR_NODE_BODY");
             var PSUEDO_CLASS_OPTIONAL = new NonTerminal("PSUEDO_CLASS_OPTIONAL");
             var PSUEDO_CLASS_GROUP = new NonTerminal("PSUEDO_CLASS_GROUP");
             var PSUEDO_ELEMENT_OPTIONAL = new NonTerminal("PSUEDO_ELEMENT_OPTIONAL");
             var PSUEDO_ELEMENT_GROUP = new NonTerminal("PSUEDO_ELEMENT_GROUP");
+            var EMPTY_ELEMENT = new NonTerminal("EMPTY_ELEMENT");
 
             var BLOCK_ITEMS = new NonTerminal("BLOCK_ITEMS");
             var BLOCK_ITEM = new NonTerminal("BLOCK_ITEM");
@@ -320,11 +331,11 @@ namespace ScssIronyParser
             //    STATEMENT.Rule = VAR_RULE | BLOCK | IMPORT_RULE | MIXIN_RULE | CHARSET_RULE | INCLUDE_MIXIN;
             STATEMENT.Rule =
                 VAR_RULE
-               // | BLOCK
-              // | DECLARATION
-              //    | IMPORT_RULE;
-             //   | MIXIN_RULE
-                | SELECTOR
+                | BLOCK
+                // | DECLARATION
+                //    | IMPORT_RULE;
+                //   | MIXIN_RULE
+             //   | TOP_LEVEL_SELECTOR
                 | CHARSET_RULE
                 | INCLUDE_RULE;
 
@@ -335,7 +346,7 @@ namespace ScssIronyParser
             VAR_PROPERTY_DECLARATION.Rule =
                   FONT_FAMILY
                 | FONT_PROPERTY_RHS
-              //  | CSS_UNIT_VALUE
+                //  | CSS_UNIT_VALUE
                 | color_rgb;
 
             //VAR_DECLARATION_LIST.Rule = MakePlusRule(VAR_DECLARATION_LIST, comma, VAR_DECLARATION);
@@ -343,52 +354,53 @@ namespace ScssIronyParser
 
             //block       : '{' S* [ any | block | ATKEYWORD S* | ';' S* ]* '}' S*;
             // BLOCK.Rule = SELECTOR + BLOCK_BODY;
-            BLOCK.Rule = SELECTOR + left_brace + BLOCK_ITEMS + right_brace;
+           // BLOCK.Rule = TOP_LEVEL_SELECTOR + left_brace + BLOCK_ITEMS + right_brace;
+            BLOCK.Rule = TOP_LEVEL_SELECTOR + BLOCK_ITEMS + right_brace;
 
             BLOCK_ITEMS.Rule = MakeStarRule(BLOCK_ITEMS, BLOCK_ITEM);
             //BLOCK_ITEM.Rule = BLOCK | FONT_GROUP | DECLARATION | INCLUDE_MIXIN | IMPORT_RULE;
 
-            BLOCK_ITEM.Rule = FONT_PROPERTY | DECLARATION | INCLUDE_RULE | IMPORT_RULE | CHILD_BLOCK;
+           // BLOCK_ITEM.Rule = FONT_PROPERTY | DECLARATION | INCLUDE_RULE | IMPORT_RULE | CHILD_BLOCK;
+            BLOCK_ITEM.Rule =  FONT_PROPERTY
+                | DECLARATION
+                | INCLUDE_RULE
+                | CHILD_BLOCK;
 
-            BLOCK_BODY.Rule = left_brace + font + colon + right_brace;
-            CHILD_BLOCK.Rule = SELECTOR + left_brace + BLOCK_ITEMS + right_brace;
-            CHILDREN.Rule = Empty | CHILD_BLOCK;
+            //BLOCK_BODY.Rule = left_brace + font + colon + right_brace;
+            CHILD_BLOCK.Rule = MID_LEVEL_SELECTOR + BLOCK_ITEMS + right_brace;
+            //CHILDREN.Rule = Empty | CHILD_BLOCK;
 
-            // AND rule
-            SELECTOR.Rule = MakePlusRule(SELECTOR, comma, SELECTOR_NODE);
+            // TOP LEVEL SELECTOR
+            TOP_LEVEL_SELECTOR.Rule = TOP_SELECTOR_NODE_ELEMENT + TOP_LEVEL_SELECTOR_ADDITIONAL_NODES + left_brace;
+            TOP_LEVEL_SELECTOR_ADDITIONAL_NODES.Rule = Empty | TOP_LEVEL_MORE_NODES;
+            TOP_LEVEL_MORE_NODES.Rule = MakePlusRule(TOP_LEVEL_MORE_NODES, TOP_LEVEL_TAIL_NODE);
+            TOP_LEVEL_TAIL_NODE.Rule = SELECTOR_OP + TOP_SELECTOR_NODE_ELEMENT;
+            TOP_SELECTOR_NODE_ELEMENT.Rule = TOP_TAG_SELECTOR + SELECTOR_NODE_BODY;
+            TOP_TAG_SELECTOR.Rule = ident_token | all_star;
 
-            // INSIDE rule
-            //SELECTOR_GROUP.Rule = SELECTOR_NODE;
-            //| PARENT_CHILD_SELECTOR
-            //| INSIDE_SELECTOR
-            //| ADJACENT_SELECTOR
-            //| PRECEDING_SELECTOR;
+            MID_LEVEL_SELECTOR.Rule = MID_SELECTOR_NODE_ELEMENT + MID_LEVEL_SELECTOR_ADDITIONAL_NODES + left_brace;
+            MID_LEVEL_SELECTOR_ADDITIONAL_NODES.Rule = Empty | MID_LEVEL_MORE_NODES;
+            MID_LEVEL_MORE_NODES.Rule = MakePlusRule(MID_LEVEL_MORE_NODES, MID_LEVEL_TAIL_NODE);
+            MID_LEVEL_TAIL_NODE.Rule = SELECTOR_OP + MID_SELECTOR_NODE_ELEMENT;
+            MID_SELECTOR_NODE_ELEMENT.Rule = MID_TAG_SELECTOR + SELECTOR_NODE_BODY;
+            MID_TAG_SELECTOR.Rule = ident_token | all_star | MID_SELECTOR_PARENT_AMP;
+            MID_SELECTOR_PARENT_AMP.Rule = ToTerm("&");
 
-            //SELECTOR_GROUP.Rule = 
-            //    CLASS_SELECTOR
-            //    | ID_SELECTOR
-            //    | ATTRIBUTE_SELECTOR
-            //    | SELECTOR_GROUP + PARENT_CHILD_SELECTOR
-            //    | at_symbol + CLASS_SELECTOR 
-            //    | dash_ident 
-            //    | at_symbol + dash_ident;
-           // CLASS_SELECTOR.Rule = Empty | CLASS_NAMES;
-            CLASS_SELECTOR.Rule = Empty | CLASS_NAMES;
-            CLASS_NAMES.Rule = MakePlusRule(CLASS_NAMES, CLASS_NAME);
-            CLASS_NAME.Rule = dot + ident_token;
-
+            SELECTOR_NODE_BODY.Rule = ID_SELECTOR + ATTRIBUTE_SELECTOR + CLASS_SELECTOR + PSUEDO_CLASS_OPTIONAL + PSUEDO_ELEMENT_OPTIONAL;
             ID_SELECTOR.Rule = Empty | hash + ident_token;
+            //SELECTOR_NAMESPACE.Rule = Empty | ident_token + pipe | all_star + pipe;
+
             ATTRIBUTE_SELECTOR.Rule = Empty | left_square_b + ident_token + ATTRIBUTE_OP_COND + right_square_b;
             ATTRIBUTE_OP_COND.Rule = Empty | ATTRIBUTE_OP + VALUE + ATTRIBUTE_CASE_SENSITIVE;
 
-            ATTRIBUTE_OP.Rule = 
+            ATTRIBUTE_OP.Rule =
                 ATTRIBUTE_OP_EQUAL
-                | ATTRIBUTE_OP_LIST_MATCH 
+                | ATTRIBUTE_OP_LIST_MATCH
                 | ATTRIBUTE_OP_STARTS_WITH
                 | ATTRIBUTE_OP_ENDS_WITH
                 | ATTRIBUTE_OP_DASH_MATCH;
             ATTRIBUTE_CASE_SENSITIVE.Rule =
-                Empty 
+                Empty
                 | ToTerm("s")
                 | ToTerm("i");
             ATTRIBUTE_OP_DASH_MATCH.Rule = ToTerm(@"|=");
@@ -397,31 +409,12 @@ namespace ScssIronyParser
             ATTRIBUTE_OP_STARTS_WITH.Rule = ToTerm("^=");
             ATTRIBUTE_OP_ENDS_WITH.Rule = ToTerm("$=");
 
-            //PARENT_CHILD_SELECTOR.Rule = MakePlusRule(PARENT_CHILD_SELECTOR, ge_than, SELECTOR_ITEM);
-            //ADJACENT_SELECTOR.Rule = MakePlusRule(ADJACENT_SELECTOR, plus, SELECTOR_ITEM);
-            //PRECEDING_SELECTOR.Rule = MakePlusRule(PRECEDING_SELECTOR, tilde, SELECTOR_ITEM);
-            //INSIDE_SELECTOR.Rule = MakePlusRule(INSIDE_SELECTOR, SELECTOR_ITEM);
-           // SELECTOR_NODE.Rule = ID_SELECTOR + TOP_NODE_ELEMENT + ATTRIBUTE_SELECTOR + PSUEDO_CLASS_OPTIONAL + PSUEDO_ELEMENT_OPTIONAL + ADDITIONAL_TOKENS;
-           // SELECTOR_NODE.Rule = NODE_ELEMENT + ADDITIONAL_TOKENS;
-            SELECTOR_NODE.Rule = MakePlusRule(SELECTOR_NODE, SELECTOR_OP, CHILD_TAG_SELECTOR);
-           // ADDITIONAL_TOKENS.Rule = Empty | MakePlusRule(ADDITIONAL_TOKENS, COMBINATOR);
-            COMBINATOR.Rule = SELECTOR_OP + CHILD_TAG_SELECTOR;
-            SELECTOR_OP.Rule = PARENT_CHILD_SELECTOR | ADJACENT_SELECTOR | PRECEDING_SELECTOR;
+            // CLASS_SELECTOR.Rule = Empty | CLASS_NAMES;
+            CLASS_SELECTOR.Rule = Empty | CLASS_NAMES;
+            CLASS_NAMES.Rule = MakePlusRule(CLASS_NAMES, CLASS_NAME);
+            CLASS_NAME.Rule = dot + ident_token;
 
-            PARENT_CHILD_SELECTOR.Rule = greater_than;
-            INSIDE_SELECTOR.Rule = Empty;
-            PRECEDING_SELECTOR.Rule = tilde;
-            ADJACENT_SELECTOR.Rule = plus;
-
-
-            // NODE_ELEMENT.Rule = ID_SELECTOR | TAG_SELECTOR + ATTRIBUTE_SELECTOR + CLASS_SELECTOR + PSUEDO_CLASS_OPTIONAL + PSUEDO_ELEMENT_OPTIONAL;
-            // CHILD_NODE_ELEMENT.Rule = ID_SELECTOR | TAG_SELECTOR + ATTRIBUTE_SELECTOR + CLASS_SELECTOR + PSUEDO_CLASS_OPTIONAL + PSUEDO_ELEMENT_OPTIONAL;
-            TOP_NODE_ELEMENT.Rule = ID_SELECTOR + TOP_TAG_SELECTOR + ATTRIBUTE_SELECTOR + CLASS_SELECTOR + PSUEDO_CLASS_OPTIONAL + PSUEDO_ELEMENT_OPTIONAL;
-            TOP_TAG_SELECTOR.Rule = ident_token | all_star;
-
-            CHILD_TAG_SELECTOR.Rule =  all_star | SELECTOR_PARENT_AMP;
             PSUEDO_CLASS_OPTIONAL.Rule = Empty | PSUEDO_CLASS_GROUP;
-            SELECTOR_PARENT_AMP.Rule = ToTerm("&");
 
             // TODO: find list of psuedo classes
             PSUEDO_CLASS_GROUP.Rule =
@@ -469,7 +462,7 @@ namespace ScssIronyParser
 
             PSUEDO_ELEMENT_OPTIONAL.Rule = Empty | PSUEDO_ELEMENT_GROUP;
             // TODO: find list of psuedo elements
-            PSUEDO_ELEMENT_GROUP.Rule =                    
+            PSUEDO_ELEMENT_GROUP.Rule =
                   ToTerm("::after")
                 | ToTerm("::before")
                 | ToTerm("::cue")
@@ -479,6 +472,60 @@ namespace ScssIronyParser
                 // | ToTerm("slotted()");
                 | ToTerm("::selection");
 
+            SELECTOR_OP.Rule = PARENT_CHILD_SELECTOR | ADJACENT_SELECTOR | PRECEDING_SELECTOR | AND_COMBINATOR | INSIDE_SELECTOR;
+
+            AND_COMBINATOR.Rule = comma;
+            PARENT_CHILD_SELECTOR.Rule = greater_than;
+            INSIDE_SELECTOR.Rule = Empty;
+            PRECEDING_SELECTOR.Rule = tilde;
+            ADJACENT_SELECTOR.Rule = plus;
+
+
+
+            /**
+            // INSIDE rule
+            //SELECTOR_GROUP.Rule = SELECTOR_NODE;
+            //| PARENT_CHILD_SELECTOR
+            //| INSIDE_SELECTOR
+            //| ADJACENT_SELECTOR
+            //| PRECEDING_SELECTOR;
+
+            //SELECTOR_GROUP.Rule = 
+            //    CLASS_SELECTOR
+            //    | ID_SELECTOR
+            //    | ATTRIBUTE_SELECTOR
+            //    | SELECTOR_GROUP + PARENT_CHILD_SELECTOR
+            //    | at_symbol + CLASS_SELECTOR 
+            //    | dash_ident 
+            //    | at_symbol + dash_ident;
+
+            //PARENT_CHILD_SELECTOR.Rule = MakePlusRule(PARENT_CHILD_SELECTOR, ge_than, SELECTOR_ITEM);
+            //ADJACENT_SELECTOR.Rule = MakePlusRule(ADJACENT_SELECTOR, plus, SELECTOR_ITEM);
+            //PRECEDING_SELECTOR.Rule = MakePlusRule(PRECEDING_SELECTOR, tilde, SELECTOR_ITEM);
+            //INSIDE_SELECTOR.Rule = MakePlusRule(INSIDE_SELECTOR, SELECTOR_ITEM);
+           // SELECTOR_NODE.Rule = ID_SELECTOR + TOP_NODE_ELEMENT + ATTRIBUTE_SELECTOR + PSUEDO_CLASS_OPTIONAL + PSUEDO_ELEMENT_OPTIONAL + ADDITIONAL_TOKENS;
+           // SELECTOR_NODE.Rule = NODE_ELEMENT + ADDITIONAL_TOKENS;
+            SELECTOR_NODE.Rule = MakePlusRule(SELECTOR_NODE, SELECTOR_OP, CHILD_TAG_SELECTOR);
+           // ADDITIONAL_TOKENS.Rule = Empty | MakePlusRule(ADDITIONAL_TOKENS, COMBINATOR);
+            COMBINATOR.Rule = SELECTOR_OP + CHILD_TAG_SELECTOR;
+            SELECTOR_OP.Rule = PARENT_CHILD_SELECTOR | ADJACENT_SELECTOR | PRECEDING_SELECTOR;
+
+            PARENT_CHILD_SELECTOR.Rule = greater_than;
+            INSIDE_SELECTOR.Rule = Empty;
+            PRECEDING_SELECTOR.Rule = tilde;
+            ADJACENT_SELECTOR.Rule = plus;
+
+
+            // NODE_ELEMENT.Rule = ID_SELECTOR | TAG_SELECTOR + ATTRIBUTE_SELECTOR + CLASS_SELECTOR + PSUEDO_CLASS_OPTIONAL + PSUEDO_ELEMENT_OPTIONAL;
+            // CHILD_NODE_ELEMENT.Rule = ID_SELECTOR | TAG_SELECTOR + ATTRIBUTE_SELECTOR + CLASS_SELECTOR + PSUEDO_CLASS_OPTIONAL + PSUEDO_ELEMENT_OPTIONAL;
+            TOP_NODE_ELEMENT.Rule = ID_SELECTOR + TOP_TAG_SELECTOR + ATTRIBUTE_SELECTOR + CLASS_SELECTOR + PSUEDO_CLASS_OPTIONAL + PSUEDO_ELEMENT_OPTIONAL;
+            TOP_TAG_SELECTOR.Rule = ident_token | all_star;
+
+            CHILD_TAG_SELECTOR.Rule =  all_star | SELECTOR_PARENT_AMP;
+
+
+
+            **/
             //BLOCK_ITEMS.Rule = MakeStarRule(BLOCK_ITEMS, BLOCK_ITEM);
             ////BLOCK_ITEM.Rule = BLOCK | FONT_GROUP | DECLARATION | INCLUDE_MIXIN | IMPORT_RULE;
 
@@ -634,7 +681,7 @@ namespace ScssIronyParser
                 | IMPORT_RULE
                 | INCLUDE_RULE;
             MIXIN_BODY_BLOCK.Rule =
-                  SELECTOR + MIXIN_BODY
+                  TOP_LEVEL_SELECTOR + MIXIN_BODY
                 | MIXIN_BODY_ASSIGNMENT_LVALUE + colon + MIXIN_BODY;
             MIXIN_BODY_ASSIGNMENT.Rule = MIXIN_BODY_ASSIGNMENT_LVALUE + colon + MIXIN_BODY_ASSIGNMENT_RVALUE;
             MIXIN_BODY_ASSIGNMENT_LVALUE.Rule = ident_token | MIXIN_PARAM_REPLACE;
@@ -732,9 +779,9 @@ namespace ScssIronyParser
          **/
             #endregion
 
-            MarkPunctuation(dot, charset, colon, plus, hash, semicolon, left_brace, right_brace, single_quote, left_round, right_round, left_square_b, right_square_b, at_symbol, var_symbol, include);
+            MarkPunctuation(pipe, dot, charset, colon, plus, hash, semicolon, left_brace, right_brace, single_quote, left_round, right_round, left_square_b, right_square_b, at_symbol, var_symbol, include);
             MarkNotReported(import, IMPORT_KEYWORD, url, STRING, INCLUDE_RULE, include);
-            MarkTransient(VAR_DECLARATION, VAR_PROPERTY_DECLARATION, CLASS_NAME, VALUE_ITEM_GROUP, FIRST_CHARSET, KEY, BLOCK_ITEM, BLOCK_ITEMS, DECLARATION_VALUES, STATEMENT, MIXIN_BODY_ITEM, MIXIN_CALL_ARGS, INCLUDE_RULE);
+            MarkTransient(VAR_DECLARATION, VAR_PROPERTY_DECLARATION, CLASS_NAME, VALUE_ITEM_GROUP, FIRST_CHARSET, BLOCK_ITEM, BLOCK_ITEMS, DECLARATION_VALUES, STATEMENT, MIXIN_BODY_ITEM, MIXIN_CALL_ARGS, INCLUDE_RULE);
             MarkReservedWords("none", "block", "inline-block", "@mixin", "@import");
 
             //Set grammar root
