@@ -222,13 +222,19 @@ namespace ScssIronyParser
 
             var MIXIN_RULE = new NonTerminal("MIXIN_RULE");
             var MIXIN_FUNCTION = new NonTerminal("MIXIN_FUNCTION");
-            var MIXIN_BODY = new NonTerminal("MIXIN_BODY");
+            var MIXIN_TOP_BODY = new NonTerminal("MIXIN_TOP_BODY");
+            var MIXIN_MID_BODY = new NonTerminal("MIXIN_MID_BODY");
             var MIXIN_ARGS_LIST = new NonTerminal("MIXIN_ARGS_LIST");
             var MIXIN_FUNC_ARGS = new NonTerminal("MIXIN_FUNC_ARGS");
-            var MIXIN_BODY_ITEMS = new NonTerminal("MIXIN_BODY_ITEMS");
-            var MIXIN_BODY_ITEM = new NonTerminal("MIXIN_BODY_ITEM");
+            var MIXIN_TOP_BODY_ITEMS = new NonTerminal("MIXIN_TOP_BODY_ITEMS");
+            var MIXIN_MID_BODY_ITEMS = new NonTerminal("MIXIN_MID_BODY_ITEMS");
+            var MIXIN_TOP_BODY_ITEM = new NonTerminal("MIXIN_TOP_BODY_ITEM");
+            var MIXIN_MID_BODY_ITEM = new NonTerminal("MIXIN_MID_BODY_ITEM");
             var MIXIN_BODY_ASSIGNMENT = new NonTerminal("MIXIN_BODY_ASSIGNMENT");
-            var MIXIN_BODY_BLOCK = new NonTerminal("MIXIN_BODY_BLOCK");
+            var MIXIN_TOP_PROPERTY_BODY = new NonTerminal("MIXIN_TOP_PROPERTY_BODY");
+            var MIXIN_MID_PROPERTY_BODY = new NonTerminal("MIXIN_MID_PROPERTY_BODY");
+            var MIXIN_TOP_BODY_BLOCK = new NonTerminal("MIXIN_TOP_BODY_BLOCK");
+            var MIXIN_MID_BODY_BLOCK = new NonTerminal("MIXIN_MID_BODY_BLOCK");
             var MIXIN_PARAM_REPLACE = new NonTerminal("MIXIN_PARAM_REPLACE");
             var MIXIN_BODY_ASSIGNMENT_LVALUE = new NonTerminal("MIXIN_BODY_ASSIGNMENT_LVALUE");
             var MIXIN_BODY_ASSIGNMENT_RVALUE = new NonTerminal("MIXIN_BODY_ASSIGNMENT_RVALUE");
@@ -333,9 +339,9 @@ namespace ScssIronyParser
                 VAR_RULE
                 | BLOCK
                 // | DECLARATION
-                //    | IMPORT_RULE;
-                //   | MIXIN_RULE
-             //   | TOP_LEVEL_SELECTOR
+                // | IMPORT_RULE
+                | MIXIN_RULE
+                //   | TOP_LEVEL_SELECTOR
                 | CHARSET_RULE
                 | INCLUDE_RULE;
 
@@ -354,16 +360,18 @@ namespace ScssIronyParser
 
             //block       : '{' S* [ any | block | ATKEYWORD S* | ';' S* ]* '}' S*;
             // BLOCK.Rule = SELECTOR + BLOCK_BODY;
-           // BLOCK.Rule = TOP_LEVEL_SELECTOR + left_brace + BLOCK_ITEMS + right_brace;
+            // BLOCK.Rule = TOP_LEVEL_SELECTOR + left_brace + BLOCK_ITEMS + right_brace;
             BLOCK.Rule = TOP_LEVEL_SELECTOR + BLOCK_ITEMS + right_brace;
 
             BLOCK_ITEMS.Rule = MakeStarRule(BLOCK_ITEMS, BLOCK_ITEM);
             //BLOCK_ITEM.Rule = BLOCK | FONT_GROUP | DECLARATION | INCLUDE_MIXIN | IMPORT_RULE;
 
-           // BLOCK_ITEM.Rule = FONT_PROPERTY | DECLARATION | INCLUDE_RULE | IMPORT_RULE | CHILD_BLOCK;
-            BLOCK_ITEM.Rule =  FONT_PROPERTY
+            // BLOCK_ITEM.Rule = FONT_PROPERTY | DECLARATION | INCLUDE_RULE | IMPORT_RULE | CHILD_BLOCK;
+            BLOCK_ITEM.Rule =
+                FONT_PROPERTY
                 | DECLARATION
                 | INCLUDE_RULE
+                // | IMPORT_RULE
                 | CHILD_BLOCK;
 
             //BLOCK_BODY.Rule = left_brace + font + colon + right_brace;
@@ -560,7 +568,7 @@ namespace ScssIronyParser
                 | CSS_UNIT_VALUE
                 | zero_terminal
                 | color_rgb
-               // | ident_token
+                // | ident_token
                 | "none"
                 | "block"
                 | "inline-block"
@@ -669,23 +677,41 @@ namespace ScssIronyParser
             FONT_FAMILY.Rule = VAR_REFERENCE | MakePlusRule(FONT_FAMILY, comma, FONT_FAMILY_MEMBER);
             FONT_FAMILY_MEMBER.Rule = ident_token | STRING | "sans-serif" | "serif" | "monospace" | "cursive" | "fantasy" | "caption" | "icon" | "menu" | "message-box" | "small-caption" | "status-bar";
 
-            MIXIN_RULE.Rule = mixin + MIXIN_FUNCTION + MIXIN_BODY;
+            MIXIN_RULE.Rule = mixin + MIXIN_FUNCTION + left_brace + MIXIN_TOP_BODY;
+            // MIXIN_RULE.Rule = mixin + MIXIN_FUNCTION + MIXIN_BODY;
             MIXIN_FUNCTION.Rule = ident_token + MIXIN_FUNC_ARGS;
             MIXIN_FUNC_ARGS.Rule = Empty | left_round + MIXIN_ARGS_LIST + right_round;
             MIXIN_ARGS_LIST.Rule = MakePlusRule(MIXIN_ARGS_LIST, comma, VAR_PROPERTY);
-            MIXIN_BODY.Rule = left_brace + MIXIN_BODY_ITEMS + right_brace;
-            MIXIN_BODY_ITEMS.Rule = MakeStarRule(MIXIN_BODY_ITEMS, MIXIN_BODY_ITEM);
-            MIXIN_BODY_ITEM.Rule =
-                  MIXIN_BODY_ASSIGNMENT + semicolon
-                | MIXIN_BODY_BLOCK
-                | IMPORT_RULE
-                | INCLUDE_RULE;
-            MIXIN_BODY_BLOCK.Rule =
-                  TOP_LEVEL_SELECTOR + MIXIN_BODY
-                | MIXIN_BODY_ASSIGNMENT_LVALUE + colon + MIXIN_BODY;
-            MIXIN_BODY_ASSIGNMENT.Rule = MIXIN_BODY_ASSIGNMENT_LVALUE + colon + MIXIN_BODY_ASSIGNMENT_RVALUE;
+            MIXIN_TOP_BODY.Rule = MIXIN_TOP_BODY_ITEMS + right_brace;
+            MIXIN_TOP_BODY_ITEMS.Rule = MakeStarRule(MIXIN_TOP_BODY_ITEMS, MIXIN_TOP_BODY_ITEM);
+            MIXIN_TOP_BODY_ITEM.Rule =
+                FONT_PROPERTY
+                | INCLUDE_RULE
+                | MIXIN_BODY_ASSIGNMENT + semicolon
+                | MIXIN_TOP_BODY_BLOCK
+                | MIXIN_TOP_PROPERTY_BODY
+                ;
+            //BLOCK_BODY.Rule = left_brace + font + colon + right_brace;
+            MIXIN_TOP_BODY_BLOCK.Rule = TOP_LEVEL_SELECTOR + MIXIN_MID_BODY_ITEMS + right_brace;
+            MIXIN_TOP_PROPERTY_BODY.Rule = MIXIN_BODY_ASSIGNMENT_LVALUE + colon + left_brace + MIXIN_TOP_BODY_ITEMS + right_brace;
+
+            MIXIN_MID_BODY.Rule = MIXIN_MID_BODY_ITEMS + right_brace;
+            MIXIN_MID_BODY_ITEMS.Rule = MakeStarRule(MIXIN_MID_BODY_ITEMS, MIXIN_MID_BODY_ITEM);
+            MIXIN_MID_BODY_ITEM.Rule =
+                FONT_PROPERTY
+                | INCLUDE_RULE
+                | MIXIN_BODY_ASSIGNMENT + semicolon
+                | MIXIN_MID_BODY_BLOCK
+                | MIXIN_MID_PROPERTY_BODY;
+
+            MIXIN_MID_BODY_BLOCK.Rule = MID_LEVEL_SELECTOR + MIXIN_MID_BODY_ITEMS + right_brace;
+
+            MIXIN_BODY_ASSIGNMENT.Rule = MIXIN_BODY_ASSIGNMENT_LVALUE + colon + MIXIN_BODY_ASSIGNMENT_RVALUE ;
             MIXIN_BODY_ASSIGNMENT_LVALUE.Rule = ident_token | MIXIN_PARAM_REPLACE;
-            MIXIN_BODY_ASSIGNMENT_RVALUE.Rule = VALUE_ITEM_GROUP | MIXIN_PARAM_REPLACE;
+            MIXIN_BODY_ASSIGNMENT_RVALUE.Rule = VALUE_ITEM_GROUP | MIXIN_PARAM_REPLACE ;
+            MIXIN_MID_PROPERTY_BODY.Rule = MIXIN_BODY_ASSIGNMENT_LVALUE + colon  + left_brace + MIXIN_MID_BODY_ITEMS + right_brace;
+
+
 
             // TODO : mixin sed
             MIXIN_PARAM_REPLACE.Rule = ToTerm("#{") + VAR_PROPERTY + right_brace;
@@ -779,9 +805,21 @@ namespace ScssIronyParser
          **/
             #endregion
 
-            MarkPunctuation(pipe, dot, charset, colon, plus, hash, semicolon, left_brace, right_brace, single_quote, left_round, right_round, left_square_b, right_square_b, at_symbol, var_symbol, include);
-            MarkNotReported(import, IMPORT_KEYWORD, url, STRING, INCLUDE_RULE, include);
-            MarkTransient(VAR_DECLARATION, VAR_PROPERTY_DECLARATION, CLASS_NAME, VALUE_ITEM_GROUP, FIRST_CHARSET, BLOCK_ITEM, BLOCK_ITEMS, DECLARATION_VALUES, STATEMENT, MIXIN_BODY_ITEM, MIXIN_CALL_ARGS, INCLUDE_RULE);
+            MarkPunctuation(pipe, dot, charset, colon, plus, hash, semicolon, left_brace, right_brace, single_quote, left_round, right_round, left_square_b, right_square_b, at_symbol, var_symbol, include, mixin);
+            MarkNotReported(import, IMPORT_KEYWORD, url, STRING, INCLUDE_RULE, include, mixin);
+            MarkTransient(
+                VAR_DECLARATION,
+                VAR_PROPERTY_DECLARATION,
+                CLASS_NAME, 
+                VALUE_ITEM_GROUP, 
+                FIRST_CHARSET, 
+                BLOCK_ITEM, 
+                BLOCK_ITEMS, 
+                DECLARATION_VALUES, 
+                STATEMENT,
+                MIXIN_TOP_BODY_ITEM,
+                MIXIN_CALL_ARGS,
+                INCLUDE_RULE);
             MarkReservedWords("none", "block", "inline-block", "@mixin", "@import");
 
             //Set grammar root
